@@ -17,36 +17,36 @@
 # BigBlueButton is an open source conferencing system. For more information see
 #    https://www.bigbluebutton.org/.
 #
-# This bbb-install-2.7.sh script automates many of the installation and configuration
-# steps described at https://docs.bigbluebutton.org/
+# This bbb-install-2.8.sh script automates many of the installation and configuration
+# steps at https://docs.bigbluebutton.org/2.8/install.html
 #
 #
 #  Examples
 #
-#  Install BigBlueButton 2.7.x with a SSL certificate from Let's Encrypt using hostname bbb.example.com
+#  Install BigBlueButton 2.8.x with a SSL certificate from Let's Encrypt using hostname bbb.example.com
 #  and email address info@example.com and apply a basic firewall
 #
-#    wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -w -v focal-270 -s bbb.example.com -e info@example.com 
+#    wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.8.sh | bash -s -- -w -v jammy-280 -s bbb.example.com -e info@example.com 
 #
 #  Install BigBlueButton with SSL + Greenlight
 #
-#    wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- -w -v focal-270 -s bbb.example.com -e info@example.com -g
+#    wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.8.sh | bash -s -- -w -v jammy-280 -s bbb.example.com -e info@example.com -g
 #
 
 usage() {
     set +x
     cat 1>&2 <<HERE
 
-Script for installing a BigBlueButton 2.7 server in under 30 minutes. It also supports upgrading a BigBlueButton server to version 2.7 (from version 2.6)
+Script for installing a BigBlueButton 2.8 server in under 30 minutes.
 
 This script also supports installation of a coturn (TURN) server on a separate server.
 
 USAGE:
-    wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.7.sh | bash -s -- [OPTIONS]
+    wget -qO- https://ubuntu.bigbluebutton.org/bbb-install-2.8.sh | bash -s -- [OPTIONS]
 
 OPTIONS (install BigBlueButton):
 
-  -v <version>           Install given version of BigBlueButton (e.g. 'focal-270') (required)
+  -v <version>           Install given version of BigBlueButton (e.g. 'jammy-280') (required)
 
   -s <hostname>          Configure server with <hostname>
   -e <email>             Email for Let's Encrypt certbot
@@ -98,17 +98,17 @@ VARIABLES (configure Greenlight only):
 
 EXAMPLES:
 
-Sample options for setup a BigBlueButton 2.7 server
+Sample options for setup a BigBlueButton 2.8 server
 
-    -v focal-260 -s bbb.example.com -e info@example.com
+    -v jammy-260 -s bbb.example.com -e info@example.com
 
-Sample options for setup a BigBlueButton 2.7 server with Greenlight 3 and optionally Keylcoak
+Sample options for setup a BigBlueButton 2.8 server with Greenlight 3 and optionally Keylcoak
 
-    -v focal-260 -s bbb.example.com -e info@example.com -g [-k]
+    -v jammy-260 -s bbb.example.com -e info@example.com -g [-k]
 
-Sample options for setup a BigBlueButton 2.7 server with LTI framework while managing LTI consumer credentials MY_KEY:MY_SECRET 
+Sample options for setup a BigBlueButton 2.8 server with LTI framework while managing LTI consumer credentials MY_KEY:MY_SECRET 
 
-    -v focal-260 -s bbb.example.com -e info@example.com -t MY_KEY:MY_SECRET
+    -v jammy-260 -s bbb.example.com -e info@example.com -t MY_KEY:MY_SECRET
 
 SUPPORT:
     Community: https://bigbluebutton.org/support
@@ -130,6 +130,7 @@ main() {
 
   need_x64
 
+  set +x
   while builtin getopts "hs:r:c:v:e:p:m:t:xgadwjik" opt "${@}"; do
 
     case $opt in
@@ -214,7 +215,7 @@ main() {
       w)
         SSH_PORT=$(grep Port /etc/ssh/ssh_config | grep -v \# | sed 's/[^0-9]*//g')
         if [[ -n "$SSH_PORT" && "$SSH_PORT" != "22" ]]; then
-          err "Detected sshd not listening to standard port 22 -- unable to install default UFW firewall rules.
+          err "Detected sshd not listening to standard port 22 -- unable to install default UFW firewall rules."
         fi
         UFW=true
         ;;
@@ -249,7 +250,7 @@ main() {
   # Check if we're installing coturn (need an e-mail address for Let's Encrypt)
   if [ -z "$VERSION" ] && [ -n "$COTURN" ]; then
     if [ -z "$EMAIL" ]; then err "Installing coturn needs an e-mail address for Let's Encrypt"; fi
-    check_ubuntu 20.04
+    check_ubuntu 22.04
 
     install_coturn
     exit 0
@@ -277,37 +278,55 @@ main() {
   # need_pkg xmlstarlet
   get_IP "$HOST"
 
-  if [ "$DISTRO" == "focal" ]; then
+  if [ "$DISTRO" == "jammy" ]; then
+  set +x
     need_pkg ca-certificates
 
-    # yq version 3 is provided by ppa:bigbluebutton/support
-    # Uncomment the following to enable yq 4 after bigbluebutton/bigbluebutton#14511 is resolved
-    #need_ppa rmescandon-ubuntu-yq-bionic.list         ppa:rmescandon/yq          CC86BB64 # Edit yaml files with yq
+    #sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+    #sudo chmod a+x /usr/local/bin/yq
+    #sudo snap install yq
 
-    #need_ppa libreoffice-ubuntu-ppa-focal.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
-    need_ppa bigbluebutton-ubuntu-support-focal.list ppa:bigbluebutton/support  E95B94BC # Needed for libopusenc0
-    if ! apt-key list 5AFA7A83 | grep -q -E "1024|4096"; then   # Add Kurento package
-      sudo apt-key adv --keyserver https://keyserver.ubuntu.com --recv-keys 5AFA7A83
-    fi
+    need_ppa rmescandon-ubuntu-yq-jammy.list         ppa:rmescandon/yq          CC86BB64 # Edit yaml files with yq
+    
+    need_pkg yq
+    yq --version
 
-    rm -rf /etc/apt/sources.list.d/kurento.list     # Kurento 6.15 now packaged
+    #need_ppa libreoffice-ubuntu-ppa-jammy.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
+    need_ppa bigbluebutton-ubuntu-support-jammy.list ppa:bigbluebutton/support  E95B94BC # Needed for libopusenc0
 
-    if [ -f /etc/apt/sources.list.d/nodesource.list ] &&  grep -q 12 /etc/apt/sources.list.d/nodesource.list; then
-      # Node 12 might be installed, previously used in BigBlueButton
+    if [ -f /etc/apt/sources.list.d/nodesource.list ] &&  grep -q 16 /etc/apt/sources.list.d/nodesource.list; then
+      # Node 16 might be installed, previously used in BigBlueButton
       sudo apt-get purge nodejs
       sudo rm -r /etc/apt/sources.list.d/nodesource.list
     fi
     if [ ! -f /etc/apt/sources.list.d/nodesource.list ]; then
-      curl -sL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+      curl -sL https://deb.nodesource.com/setup_18.x | sudo -E bash -
     fi
-    if ! apt-cache madison nodejs | grep -q node_16; then
-      err "Did not detect nodejs 16.x candidate for installation"
+    if ! apt-cache madison nodejs | grep -q node_18; then
+      err "Did not detect nodejs 18.x candidate for installation"
     fi
-    if ! apt-key list MongoDB | grep -q 4.4; then
-      wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
-    fi
-    echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
-    rm -f /etc/apt/sources.list.d/mongodb-org-4.2.list
+
+    #if ! apt-key list MongoDB | grep -q 4.4; then
+    #  wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+    #fi
+    #echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+
+    # TODO -- remove -- only needed because we want to use MongoDB community edition 4.4 and Ubuntu 22.04's mongo min version is 6.0
+    # https://dev.to/koushikweb/how-to-install-mongodb-community-edition-to-ubuntu-2204-2ld3
+    #echo "deb http://security.ubuntu.com/ubuntu focal-security main" | sudo tee /etc/apt/sources.list.d/focal-security.list
+    #need_pkg libssl1.1
+
+
+   if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
+     curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
+     sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg \
+     --dearmor
+   fi
+
+   echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+
+
 
     touch /root/.rnd
     MONGODB=mongodb-org
@@ -318,12 +337,6 @@ main() {
 
     need_pkg openjdk-11-jre
     update-java-alternatives -s java-1.11.0-openjdk-amd64
-
-    # Remove old bbb-demo if installed from a previous 2.5 setup
-    if dpkg -s bbb-demo > /dev/null 2>&1; then
-      apt purge -y bbb-demo tomcat9
-      rm -rf /var/lib/tomcat9
-    fi
   fi
 
   apt-get update
@@ -342,8 +355,6 @@ main() {
   check_lxc
   check_nat
   check_LimitNOFILE
-
-  configure_HTML5 
 
   if [ -n "$LINK_PATH" ]; then
     ln -s "$LINK_PATH" "/var/bigbluebutton"
@@ -569,7 +580,7 @@ need_ppa() {
 }
 
 check_version() {
-  if ! echo "$1" | grep -Eq "focal-27"; then err "This script can only install BigBlueButton 2.7 and is meant to be run on Ubuntu 20.04 (focal) server."; fi
+  if ! echo "$1" | grep -Eq "jammy-28"; then err "This script can only install BigBlueButton 2.8 and is meant to be run on Ubuntu 22.04 (jammy) server."; fi
   DISTRO=${1%%-*}
   if ! wget -qS --spider "https://$PACKAGE_REPOSITORY/$1/dists/bigbluebutton-$DISTRO/Release.gpg" > /dev/null 2>&1; then
     err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
@@ -720,14 +731,6 @@ HERE
   fi
 }
 
-configure_HTML5() {
-  # Use Google's default STUN server
-  if [ -n "$INTERNAL_IP" ]; then
-   sed -i "s/[;]*externalIPv4=.*/externalIPv4=$IP/g"                   /etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
-   sed -i "s/[;]*iceTcp=.*/iceTcp=0/g"                                 /etc/kurento/modules/kurento/WebRtcEndpoint.conf.ini
-  fi
-}
-
 install_haproxy() {
   need_pkg haproxy
   if [ -n "$INTERNAL_IP" ]; then
@@ -831,7 +834,7 @@ HERE
 
 # This function will install the latest official version of greenlight-v3 and set it as the hosting Bigbluebutton default frontend or update greenlight-v3 if installed.
 # Greenlight is a simple to use Bigbluebutton room manager that offers a set of features useful to online workloads especially virtual schooling.
-# https://docs.bigbluebutton.org/greenlight/v2/overview
+# https://docs.bigbluebutton.org/greenlight/gl-overview.html
 install_greenlight_v3(){
   # This function depends on the following files existing on their expected location so an eager check is done asserting that.
   if [[ -z $SERVLET_DIR  || ! -f $SERVLET_DIR/WEB-INF/classes/bigbluebutton.properties || ! -f $CR_TMPFILE || ! -f $BBB_WEB_ETC_CONFIG ]]; then
@@ -1377,21 +1380,18 @@ disable_nginx_site() {
 }
 
 install_docker() {
+set -x
   need_pkg apt-transport-https ca-certificates curl gnupg-agent software-properties-common openssl
 
   # Install Docker
   if ! apt-key list | grep -q Docker; then
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+    if [ ! -f /usr/share/keyrings/docker-archive-keyring.gpg ]; then
+      curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    fi 
   fi
-
   if ! dpkg -l | grep -q docker-ce; then
-    echo "deb [ arch=amd64 ] https://download.docker.com/linux/ubuntu \
-     $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
-    
-    add-apt-repository --remove\
-     "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-     $(lsb_release -cs) \
-     stable"
+
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null    
 
     apt-get update
     need_pkg docker-ce docker-ce-cli containerd.io
@@ -1466,7 +1466,7 @@ HERE
         err "Let's Encrypt SSL request for $HOST did not succeed - exiting"
       fi
     else
-      # Place your fullchain.pem and privkey.pem files in /local/certs/ and bbb-install-2.7.sh will deal with the rest.
+      # Place your fullchain.pem and privkey.pem files in /local/certs/ and bbb-install will deal with the rest.
       mkdir -p "/etc/letsencrypt/live/$HOST/"
       ln -s /local/certs/fullchain.pem "/etc/letsencrypt/live/$HOST/fullchain.pem"
       ln -s /local/certs/privkey.pem "/etc/letsencrypt/live/$HOST/privkey.pem"
@@ -1589,7 +1589,7 @@ HERE
     fi 
   fi
 # Create the default Welcome page Bigbluebutton Frontend unless it exists.
-if [[ ! -f /usr/share/bigbluebutton/nginx/default-fe.nginx && ! -f /usr/share/bigbluebutton/nginx/default-fe.nginx.disabled ]]; then
+if [[ ! -f /usr/share/bigbluebutton/nginx/default-fe.nginx && ! -f yq/usr/share/bigbluebutton/nginx/default-fe.nginx.disabled ]]; then
 cat <<HERE > /usr/share/bigbluebutton/nginx/default-fe.nginx
 # Default Bigbluebutton Landing page.
 
@@ -1610,7 +1610,7 @@ fi
     sed -i "s/proxy_pass .*/proxy_pass https:\/\/$IP:7443;/g" /usr/share/bigbluebutton/nginx/sip.nginx
   else
     # Use nginx as proxy for WSS -> WS (see https://github.com/bigbluebutton/bigbluebutton/issues/9667)
-    yq w -i /usr/share/meteor/bundle/programs/server/assets/app/config/settings.yml public.media.sipjsHackViaWs true
+    yq -i '.public.media.sipjsHackViaWs = true' /etc/bigbluebutton/bbb-html5.yml
     sed -i "s/proxy_pass .*/proxy_pass http:\/\/$IP:5066;/g" /usr/share/bigbluebutton/nginx/sip.nginx
     xmlstarlet edit --inplace --update '//param[@name="ws-binding"]/@value' --value "$IP:5066" /opt/freeswitch/conf/sip_profiles/external.xml
   fi
@@ -1620,7 +1620,7 @@ fi
     sed -i 's/^bigbluebutton.web.serverURL=http:/bigbluebutton.web.serverURL=https:/g' "$BBB_WEB_ETC_CONFIG"
   fi
 
-  yq w -i /usr/local/bigbluebutton/core/scripts/bigbluebutton.yml playback_protocol https
+  yq -i '.playback_protocol = https' /usr/local/bigbluebutton/core/scripts/bigbluebutton.yml
   chmod 644 /usr/local/bigbluebutton/core/scripts/bigbluebutton.yml 
 
   # Update Greenlight (if installed) to use SSL
@@ -1638,43 +1638,33 @@ fi
     fi
   done
 
-  TARGET=/usr/local/bigbluebutton/bbb-webrtc-sfu/config/default.yml
-  if [ -f $TARGET ]; then
-    if grep -q kurentoIp $TARGET; then
-      # 2.0
-      yq w -i $TARGET kurentoIp "$IP"
-    else
-      # 2.2
-      yq w -i $TARGET kurento[0].ip "$IP"
-      yq w -i $TARGET freeswitch.ip "$IP"
-
-      if [[ $BIGBLUEBUTTON_RELEASE == 2.2.* ]] && [[ ${BIGBLUEBUTTON_RELEASE#*.*.} -lt 29 ]]; then
-        if [ -n "$INTERNAL_IP" ]; then
-          yq w -i $TARGET freeswitch.sip_ip "$INTERNAL_IP"
-        else
-          yq w -i $TARGET freeswitch.sip_ip "$IP"
-        fi
-      else
-        # Use nginx as proxy for WSS -> WS (see https://github.com/bigbluebutton/bigbluebutton/issues/9667)
-        yq w -i $TARGET freeswitch.sip_ip "$IP"
-      fi
-    fi
-    chown bigbluebutton:bigbluebutton $TARGET
-    chmod 644 $TARGET
-  fi
-
   mkdir -p /etc/bigbluebutton/bbb-webrtc-sfu
   TARGET=/etc/bigbluebutton/bbb-webrtc-sfu/production.yml
   touch $TARGET
 
+  yq -i ".freeswitch.ip = \"$IP\"" $TARGET
+
+  if [[ $BIGBLUEBUTTON_RELEASE == 2.2.* ]] && [[ ${BIGBLUEBUTTON_RELEASE#*.*.} -lt 29 ]]; then
+    if [ -n "$INTERNAL_IP" ]; then
+      yq -i ".freeswitch.sip_ip = \"$INTERNAL_IP\"" $TARGET
+    else
+      yq -i ".freeswitch.sip_ip = \"$IP\"" $TARGET
+    fi
+  else
+    # Use nginx as proxy for WSS -> WS (see https://github.com/bigbluebutton/bigbluebutton/issues/9667)
+    yq -i ".freeswitch.sip_ip = \"$IP\"" $TARGET
+  fi
+  chown bigbluebutton:bigbluebutton $TARGET
+  chmod 644 $TARGET
+
   # Configure mediasoup IPs, reference: https://raw.githubusercontent.com/bigbluebutton/bbb-webrtc-sfu/v2.7.2/docs/mediasoup.md
   # mediasoup IPs: WebRTC
-  yq w -i "$TARGET" mediasoup.webrtc.listenIps[0].ip "0.0.0.0"
-  yq w -i "$TARGET" mediasoup.webrtc.listenIps[0].announcedIp "$IP"
+  yq -i '.mediasoup.webrtc.listenIps[0].ip = "0.0.0.0"' $TARGET
+  yq -i ".mediasoup.webrtc.listenIps[0].announcedIp = \"$IP\"" $TARGET
 
   # mediasoup IPs: plain RTP (internal comms, FS <-> mediasoup)
-  yq w -i "$TARGET" mediasoup.plainRtp.listenIp.ip "0.0.0.0"
-  yq w -i "$TARGET" mediasoup.plainRtp.listenIp.announcedIp "$IP"
+  yq -i '.mediasoup.plainRtp.listenIp.ip = "0.0.0.0"' $TARGET
+  yq -i ".mediasoup.plainRtp.listenIp.announcedIp = \"$IP\"" $TARGET
 
   systemctl reload nginx
 }
@@ -1841,4 +1831,6 @@ HERE
 }
 
 main "$@" || exit 1
+
+
 
