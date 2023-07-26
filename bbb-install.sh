@@ -300,17 +300,11 @@ main() {
       err "Did not detect nodejs 18.x candidate for installation"
     fi
 
-   if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
-     curl -fsSL https://pgp.mongodb.com/server-6.0.asc | \
-     sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg \
-     --dearmor
-   fi
-
-   echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | \
-   sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
-
-
-
+    if ! apt-key list MongoDB | grep -q 4.4; then
+      wget -qO - https://www.mongodb.org/static/pgp/server-4.4.asc | sudo apt-key add -
+    fi
+    echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/4.4 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.4.list
+    rm -f /etc/apt/sources.list.d/mongodb-org-4.2.list
 
     touch /root/.rnd
     MONGODB=mongodb-org
