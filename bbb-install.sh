@@ -286,9 +286,12 @@ main() {
   if [ "$DISTRO" == "noble" ]; then
     need_pkg ca-certificates
 
-    #need_ppa rmescandon-ubuntu-yq-noble.list         ppa:rmescandon/yq          CC86BB64 # Edit yaml files with yq
-    #need_ppa ppa:rmescandon/yq
-    need_pkg yq
+    YQ_VERSION="v4.16.2"  # TODO - push the assets from the original repo/release into our fork so we can wget from bbb/yq
+    YQ_BINARY="yq_linux_amd64"
+    sudo wget -O /usr/local/bin/yq \
+      "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}"
+    sudo chmod +x /usr/local/bin/yq
+    echo "--------------------------------------"
     yq --version
 
     #need_ppa libreoffice-ubuntu-ppa-noble.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
