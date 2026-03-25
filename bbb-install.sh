@@ -26,11 +26,11 @@
 #  Install BigBlueButton 4.0.x with a SSL certificate from Let's Encrypt using hostname bbb.example.com
 #  and email address info@example.com and apply a basic firewall
 #
-#    wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v4.0.x-release/bbb-install.sh | bash -s -- -w -v jammy-400 -s bbb.example.com -e info@example.com
+#    wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v4.0.x-release/bbb-install.sh | bash -s -- -w -v noble-400 -s bbb.example.com -e info@example.com
 #
 #  Install BigBlueButton with SSL + Greenlight
 #
-#    wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v4.0.x-release/bbb-install.sh  | bash -s -- -w -v jammy-400 -s bbb.example.com -e info@example.com -g
+#    wget -qO- https://raw.githubusercontent.com/bigbluebutton/bbb-install/v4.0.x-release/bbb-install.sh  | bash -s -- -w -v noble-400 -s bbb.example.com -e info@example.com -g
 #
 
 usage() {
@@ -46,7 +46,7 @@ USAGE:
 
 OPTIONS (install BigBlueButton):
 
-  -v <version>           Install given version of BigBlueButton (e.g. 'jammy-400') (required)
+  -v <version>           Install given version of BigBlueButton (e.g. 'noble-400') (required)
 
   -s <hostname>          Configure server with <hostname>
   -e <email>             Email for Let's Encrypt certbot
@@ -67,6 +67,7 @@ OPTIONS (install BigBlueButton):
 
   -d                     Skip SSL certificates request (use provided certificates from mounted volume) in /local/certs/
   -w                     Install UFW firewall (recommended)
+  -b                     Harden SSH access by specifying which ciphers to be used
 
   -j                     Allows the installation of BigBlueButton to proceed even if not all requirements [for production use] are met.
                          Note that not all requirements can be ignored. This is useful in development / testing / ci scenarios.
@@ -100,15 +101,15 @@ EXAMPLES:
 
 Sample options for setup a BigBlueButton 4.0 server
 
-    -v jammy-400 -s bbb.example.com -e info@example.com
+    -v noble-400 -s bbb.example.com -e info@example.com
 
 Sample options for setup a BigBlueButton 4.0 server with Greenlight 3 and optionally Keycloak
 
-    -v jammy-400 -s bbb.example.com -e info@example.com -g [-k]
+    -v noble-400 -s bbb.example.com -e info@example.com -g [-k]
 
 Sample options for setup a BigBlueButton 4.0 server with LTI framework while managing LTI consumer credentials MY_KEY:MY_SECRET
 
-    -v jammy-400 -s bbb.example.com -e info@example.com -t MY_KEY:MY_SECRET
+    -v noble-400 -s bbb.example.com -e info@example.com -t MY_KEY:MY_SECRET
 
 SUPPORT:
     Community: https://bigbluebutton.org/support
@@ -227,6 +228,9 @@ main() {
       i)
         SKIP_APACHE_INSTALLED_CHECK=true
         ;;
+      b)
+        HARDEN_SSH=true
+        ;;
       :)
         err "Missing option argument for -$OPTARG"
         ;;
@@ -252,7 +256,7 @@ main() {
   # Check if we're installing coturn (need an e-mail address for Let's Encrypt)
   if [ -z "$VERSION" ] && [ -n "$COTURN" ]; then
     if [ -z "$EMAIL" ]; then err "Installing coturn needs an e-mail address for Let's Encrypt"; fi
-    check_ubuntu 22.04
+    check_ubuntu 24.04
 
     install_coturn
     exit 0
@@ -279,18 +283,18 @@ main() {
   # need_pkg xmlstarlet
   get_IP "$HOST"
 
-  if [ "$DISTRO" == "jammy" ]; then
+  if [ "$DISTRO" == "noble" ]; then
     need_pkg ca-certificates
 
-    need_ppa rmescandon-ubuntu-yq-jammy.list         ppa:rmescandon/yq          CC86BB64 # Edit yaml files with yq
+    #need_ppa rmescandon-ubuntu-yq-noble.list         ppa:rmescandon/yq          CC86BB64 # Edit yaml files with yq
     #need_ppa ppa:rmescandon/yq
     need_pkg yq
     yq --version
 
-    #need_ppa libreoffice-ubuntu-ppa-jammy.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
+    #need_ppa libreoffice-ubuntu-ppa-noble.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
 
-    need_ppa bigbluebutton-ubuntu-support-jammy.list ppa:bigbluebutton/support  2E1B01D0E95B94BC    # Needed for libopusenc0
-    need_ppa martin-uni-mainz-ubuntu-coturn-jammy.list ppa:martin-uni-mainz/coturn  4B77C2225D3BBDB3 # Coturn
+    #need_ppa bigbluebutton-ubuntu-support-noble.list ppa:bigbluebutton/support  2E1B01D0E95B94BC    # Needed for libopusenc0
+    #need_ppa martin-uni-mainz-ubuntu-coturn-noble.list ppa:martin-uni-mainz/coturn  4B77C2225D3BBDB3 # Coturn
 
     if [ -f /etc/apt/sources.list.d/nodesource.list ] &&  grep -q 18 /etc/apt/sources.list.d/nodesource.list; then
       # Node 18 might be installed, previously used in BigBlueButton
@@ -372,6 +376,10 @@ main() {
 
   if [ -n "$UFW" ]; then
     setup_ufw
+  fi
+
+  if [ "$HARDEN_SSH" = true ]; then
+    harden_ssh
   fi
 
   if [ -n "$HOST" ]; then
@@ -685,7 +693,7 @@ need_ppa() {
 }
 
 check_version() {
-  if ! echo "$1" | grep -Eq "jammy-40"; then err "This script can only install BigBlueButton 4.0 and is meant to be run on Ubuntu 22.04 (jammy) server."; fi
+  if ! echo "$1" | grep -Eq "noble-40"; then err "This script can only install BigBlueButton 4.0 and is meant to be run on Ubuntu 24.04 (noble) server."; fi
   DISTRO=${1%%-*}
   if ! wget -qS --spider "https://$PACKAGE_REPOSITORY/$1/dists/bigbluebutton-$DISTRO/Release.gpg" > /dev/null 2>&1; then
     err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
@@ -864,9 +872,13 @@ global
 	#  https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
 	# An alternative list with additional directives can be obtained from
 	#  https://mozilla.github.io/server-side-tls/ssl-config-generator/?server=haproxy
-	ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS
-	ssl-default-bind-options ssl-min-ver TLSv1.2
-	tune.ssl.default-dh-param 2048
+	ssl-default-bind-curves X25519:prime256v1:secp384r1
+	ssl-default-bind-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
+	ssl-default-bind-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+	ssl-default-bind-options prefer-client-ciphers ssl-min-ver TLSv1.2 no-tls-tickets
+	ssl-default-server-ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-CHACHA20-POLY1305
+	ssl-default-server-ciphersuites TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256
+	ssl-default-server-options ssl-min-ver TLSv1.2 no-tls-tickets
 
 defaults
 	log	global
@@ -1971,6 +1983,37 @@ source /etc/bigbluebutton/bbb-conf/apply-lib.sh
 enableUFWRules
 HERE
   chmod +x /etc/bigbluebutton/bbb-conf/apply-config.sh
+  fi
+}
+
+harden_ssh() {
+  say "Hardening SSH configuration..."
+
+  local SSH_HARDENING_FILE="/etc/ssh/sshd_config.d/99-hardened-ciphers.conf"
+
+  # Check if sshd_config includes the .d directory (Ubuntu 24.04 does by default)
+  if ! grep -q "^Include.*/etc/ssh/sshd_config.d/" /etc/ssh/sshd_config; then
+    say "Warning: /etc/ssh/sshd_config doesn't include sshd_config.d - adding include directive"
+    echo "Include /etc/ssh/sshd_config.d/*.conf" >> /etc/ssh/sshd_config
+  fi
+
+  cat > "$SSH_HARDENING_FILE" <<HERE
+# SSH Hardening - Applied by bbb-install.sh
+# Modern ciphers, key exchange, and MACs only
+
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com
+HERE
+
+  # Validate before applying
+  if sshd -t; then
+    systemctl restart sshd
+    say "SSH hardening applied successfully"
+  else
+    say "SSH config validation failed - removing hardening file"
+    rm -f "$SSH_HARDENING_FILE"
+    err "SSH hardening failed - sshd config invalid"
   fi
 }
 
