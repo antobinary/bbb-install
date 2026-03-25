@@ -693,6 +693,7 @@ need_ppa() {
 }
 
 check_version() {
+  # TODO adapt the new packaging OR this portion of bbb-install
   if ! echo "$1" | grep -Eq "noble-40"; then err "This script can only install BigBlueButton 4.0 and is meant to be run on Ubuntu 24.04 (noble) server."; fi
   DISTRO=${1%%-*}
   if ! wget -qS --spider "https://$PACKAGE_REPOSITORY/$1/dists/bigbluebutton-$DISTRO/Release.gpg" > /dev/null 2>&1; then
@@ -700,8 +701,8 @@ check_version() {
   fi
   check_root
   need_pkg curl apt-transport-https
-  curl -fsSL "https://$PACKAGE_REPOSITORY/repo/bigbluebutton.asc" | sudo tee /etc/apt/keyrings/bigbluebutton.asc
-  echo "deb [signed-by=/etc/apt/keyrings/bigbluebutton.asc] https://$PACKAGE_REPOSITORY/$VERSION bigbluebutton-$DISTRO main" > /etc/apt/sources.list.d/bigbluebutton.list
+  curl -fsSL "https://$PACKAGE_REPOSITORY/public.gpg" | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/bbb-repo.gpg
+  echo "deb https://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bbb.list
 }
 
 check_host() {
