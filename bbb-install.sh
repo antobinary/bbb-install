@@ -704,8 +704,8 @@ check_version() {
   # fi
   check_root
   need_pkg curl apt-transport-https
-  curl -fsSL "https://$PACKAGE_REPOSITORY/public.gpg" | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/bbb-repo.gpg
-  echo "deb https://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bbb.list
+  curl -fsSL "http://$PACKAGE_REPOSITORY/public.gpg" | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/bbb-repo.gpg
+  echo "deb http://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bbb.list
 }
 
 check_host() {
