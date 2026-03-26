@@ -291,7 +291,7 @@ main() {
     sudo wget -O /usr/local/bin/yq \
       "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}"
     sudo chmod +x /usr/local/bin/yq
-    echo "--------------------------------------"
+    say "--------------------------------------"
     yq --version
 
     #need_ppa libreoffice-ubuntu-ppa-noble.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
