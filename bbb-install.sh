@@ -278,54 +278,43 @@ main() {
   check_cpus
   check_ipv6
 
-  need_pkg wget curl gpg-agent dirmngr apparmor-utils
+
+  if [ "$DISTRO" != "noble" ]; then
+    err "This version of BigBlueButton requires Ubuntu 24.04"
+    exit 0
+  fi
 
   # need_pkg xmlstarlet
   get_IP "$HOST"
 
-  if [ "$DISTRO" == "noble" ]; then
-    need_pkg ca-certificates
 
-    need_pkg yq
-    yq --version
+  need_pkg wget curl gpg-agent dirmngr apparmor-utils ca-certificates yq ruby apt-transport-https haveged openjdk-17-jre dnsutils
+  #need_ppa libreoffice-ubuntu-ppa-noble.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
+  #need_ppa bigbluebutton-ubuntu-support-noble.list ppa:bigbluebutton/support  2E1B01D0E95B94BC    # Needed for libopusenc0
+  #need_ppa martin-uni-mainz-ubuntu-coturn-noble.list ppa:martin-uni-mainz/coturn  4B77C2225D3BBDB3 # Coturn
 
-    #need_ppa libreoffice-ubuntu-ppa-noble.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
-
-    #need_ppa bigbluebutton-ubuntu-support-noble.list ppa:bigbluebutton/support  2E1B01D0E95B94BC    # Needed for libopusenc0
-    #need_ppa martin-uni-mainz-ubuntu-coturn-noble.list ppa:martin-uni-mainz/coturn  4B77C2225D3BBDB3 # Coturn
-
-    if [ -f /etc/apt/sources.list.d/nodesource.list ] &&  grep -q 18 /etc/apt/sources.list.d/nodesource.list; then
-      # Node 18 might be installed, previously used in BigBlueButton
-      # Remove the repository config. This will cause the repository to get
-      # re-added using the current nodejs version, and nodejs will be upgraded.
-      sudo rm -r /etc/apt/sources.list.d/nodesource.list
+  if [ ! -f /etc/apt/sources.list.d/nodesource.list ]; then
+    sudo mkdir -p /etc/apt/keyrings
+    if [ -f /etc/apt/keyrings/nodesource.gpg ]; then
+      rm /etc/apt/keyrings/nodesource.gpg
     fi
-    if [ ! -f /etc/apt/sources.list.d/nodesource.list ]; then
-      sudo mkdir -p /etc/apt/keyrings
-      if [ -f /etc/apt/keyrings/nodesource.gpg ]; then
-        rm /etc/apt/keyrings/nodesource.gpg
-      fi
-      curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-      NODE_MAJOR=22
-      echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
-    fi
-
-    touch /root/.rnd
-    install_docker		                     # needed for bbb-libreoffice-docker
-    need_pkg ruby
-
-    BBB_WEB_ETC_CONFIG=/etc/bigbluebutton/bbb-web.properties            # Override file for local settings
-
-    need_pkg openjdk-17-jre
-    update-java-alternatives -s java-1.17.0-openjdk-amd64
+    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | sudo gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+    NODE_MAJOR=22
+    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | sudo tee /etc/apt/sources.list.d/nodesource.list
   fi
+
+  touch /root/.rnd
+  install_docker		                     # needed for bbb-libreoffice-docker
+
+  BBB_WEB_ETC_CONFIG=/etc/bigbluebutton/bbb-web.properties            # Override file for local settings
+
+  update-java-alternatives -s java-1.17.0-openjdk-amd64
 
   apt-get update
   apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" dist-upgrade
 
-  need_pkg apt-transport-https haveged
   need_pkg bigbluebutton
-  need_pkg bbb-html5
+  # need_pkg bbb-html5
 
   if [ -f /usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties ]; then
     SERVLET_DIR=/usr/share/bbb-web
@@ -693,19 +682,17 @@ need_ppa() {
 check_version() {
   # TODO adapt the new packaging OR this portion of bbb-install
   # if ! echo "$1" | grep -Eq "noble-40"; then err "This script can only install BigBlueButton 4.0 and is meant to be run on Ubuntu 24.04 (noble) server."; fi
-  # DISTRO=${1%%-*}
+  DISTRO=${1%%-*}
   # if ! wget -qS --spider "https://$PACKAGE_REPOSITORY/$1/dists/bigbluebutton-$DISTRO/Release.gpg" > /dev/null 2>&1; then
   #   err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
   # fi
   check_root
-  need_pkg curl apt-transport-https
   curl -fsSL "http://$PACKAGE_REPOSITORY/public.gpg" | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/bbb-repo.gpg
   echo "deb http://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bbb.list
 }
 
 check_host() {
   if [ -z "$PROVIDED_CERTIFICATE" ] && [ -z "$HOST" ]; then
-    need_pkg dnsutils apt-transport-https
     DIG_IP=$(dig +short "$1" | grep '^[.0-9]*$' | tail -n1)
     if [ -z "$DIG_IP" ]; then err "Unable to resolve $1 to an IP address using DNS lookup.";  fi
     get_IP "$1"
@@ -1758,15 +1745,11 @@ fi
 
   # shellcheck disable=SC1091
   eval "$(source /etc/bigbluebutton/bigbluebutton-release && declare -p BIGBLUEBUTTON_RELEASE)"
-  if [[ $BIGBLUEBUTTON_RELEASE == 2.2.* ]] && [[ ${BIGBLUEBUTTON_RELEASE#*.*.} -lt 29 ]]; then
-    sed -i "s/proxy_pass .*/proxy_pass https:\/\/$IP:7443;/g" /usr/share/bigbluebutton/nginx/sip.nginx
-  else
-    # Use nginx as proxy for WSS -> WS (see https://github.com/bigbluebutton/bigbluebutton/issues/9667)
-    touch /etc/bigbluebutton/bbb-html5.yml
-    yq -y -i '.public.media.sipjsHackViaWs = true' /etc/bigbluebutton/bbb-html5.yml
-    sed -i "s/proxy_pass .*/proxy_pass http:\/\/$IP:5066;/g" /usr/share/bigbluebutton/nginx/sip.nginx
-    xmlstarlet edit --inplace --update '//param[@name="ws-binding"]/@value' --value "$IP:5066" /opt/freeswitch/conf/sip_profiles/external.xml
-  fi
+  # Use nginx as proxy for WSS -> WS (see https://github.com/bigbluebutton/bigbluebutton/issues/9667)
+  touch /etc/bigbluebutton/bbb-html5.yml
+  yq -y -i '.public.media.sipjsHackViaWs = true' /etc/bigbluebutton/bbb-html5.yml
+  sed -i "s/proxy_pass .*/proxy_pass http:\/\/$IP:5066;/g" /usr/share/bigbluebutton/nginx/sip.nginx
+  xmlstarlet edit --inplace --update '//param[@name="ws-binding"]/@value' --value "$IP:5066" /opt/freeswitch/conf/sip_profiles/external.xml
 
   sed -i 's/^bigbluebutton.web.serverURL=http:/bigbluebutton.web.serverURL=https:/g' "$SERVLET_DIR/WEB-INF/classes/bigbluebutton.properties"
   if [ -f "$BBB_WEB_ETC_CONFIG" ]; then
