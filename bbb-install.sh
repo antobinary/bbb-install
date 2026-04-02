@@ -680,15 +680,14 @@ need_ppa() {
 }
 
 check_version() {
-  # TODO adapt the new packaging OR this portion of bbb-install
-  # if ! echo "$1" | grep -Eq "noble-40"; then err "This script can only install BigBlueButton 4.0 and is meant to be run on Ubuntu 24.04 (noble) server."; fi
+  if ! echo "$1" | grep -Eq "noble-4"; then err "This script can only install BigBlueButton 4.0 and is meant to be run on Ubuntu 24.04 (noble) server."; fi
   DISTRO=${1%%-*}
-  # if ! wget -qS --spider "https://$PACKAGE_REPOSITORY/$1/dists/bigbluebutton-$DISTRO/Release.gpg" > /dev/null 2>&1; then
-  #   err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
-  # fi
+  if ! wget -qS --spider "https://$PACKAGE_REPOSITORY/$1/dists/bigbluebutton-$DISTRO/Release.gpg" > /dev/null 2>&1; then
+    err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
+  fi
   check_root
-  curl -fsSL "http://$PACKAGE_REPOSITORY/public.gpg" | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/bbb-repo.gpg
-  echo "deb http://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bbb.list
+  curl -fsSL "http://$PACKAGE_REPOSITORY/public.gpg" | sudo tee /etc/apt/keyrings/bbb-repo.asc
+  echo "deb [signed-by=/etc/apt/keyrings/bbb-repo.asc] http://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bigbluebutton.list
 }
 
 check_host() {
