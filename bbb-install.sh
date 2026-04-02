@@ -687,7 +687,7 @@ check_version() {
   fi
   check_root
   curl -fsSL "https://$PACKAGE_REPOSITORY/public.gpg" | sudo tee /etc/apt/keyrings/bigbluebutton.asc
-  echo "deb [signed-by=/etc/apt/keyrings/bigbluebutton.asc] https://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bigbluebutton.list
+  echo "deb [signed-by=/etc/apt/keyrings/bigbluebutton.asc] https://$PACKAGE_REPOSITORY/$VERSION bigbluebutton-$DISTRO main" > /etc/apt/sources.list.d/bigbluebutton.list
 }
 
 check_host() {
