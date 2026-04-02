@@ -686,8 +686,8 @@ check_version() {
     err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
   fi
   check_root
-  curl -fsSL "http://$PACKAGE_REPOSITORY/public.gpg" | sudo tee /etc/apt/keyrings/bigbluebutton.asc
-  echo "deb [signed-by=/etc/apt/keyrings/bigbluebutton.asc] http://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bigbluebutton.list
+  curl -fsSL "https://$PACKAGE_REPOSITORY/public.gpg" | sudo tee /etc/apt/keyrings/bigbluebutton.asc
+  echo "deb [signed-by=/etc/apt/keyrings/bigbluebutton.asc] https://$PACKAGE_REPOSITORY/ $VERSION main" | sudo tee /etc/apt/sources.list.d/bigbluebutton.list
 }
 
 check_host() {
