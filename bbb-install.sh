@@ -686,7 +686,7 @@ check_version() {
     err "Unable to locate packages for $1 at $PACKAGE_REPOSITORY."
   fi
   check_root
-  curl -fsSL "https://$PACKAGE_REPOSITORY/public.gpg" | sudo tee /etc/apt/keyrings/bigbluebutton.asc
+  curl -fsSL "https://$PACKAGE_REPOSITORY/repo/bigbluebutton.asc" | sudo tee /etc/apt/keyrings/bigbluebutton.asc
   echo "deb [signed-by=/etc/apt/keyrings/bigbluebutton.asc] https://$PACKAGE_REPOSITORY/$VERSION bigbluebutton-$DISTRO main" > /etc/apt/sources.list.d/bigbluebutton.list
 }
 
