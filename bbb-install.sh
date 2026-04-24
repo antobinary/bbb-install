@@ -284,13 +284,10 @@ main() {
     exit 0
   fi
 
-  # need_pkg xmlstarlet
   get_IP "$HOST"
 
 
   need_pkg wget curl gpg-agent dirmngr apparmor-utils ca-certificates yq ruby apt-transport-https haveged openjdk-17-jre dnsutils
-  #need_ppa libreoffice-ubuntu-ppa-noble.list       ppa:libreoffice/ppa        1378B444 # Latest version of libreoffice
-  #need_ppa bigbluebutton-ubuntu-support-noble.list ppa:bigbluebutton/support  2E1B01D0E95B94BC    # Needed for libopusenc0
   #need_ppa martin-uni-mainz-ubuntu-coturn-noble.list ppa:martin-uni-mainz/coturn  4B77C2225D3BBDB3 # Coturn
 
   if [ ! -f /etc/apt/sources.list.d/nodesource.list ]; then
@@ -314,7 +311,6 @@ main() {
   apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" dist-upgrade
 
   need_pkg bigbluebutton
-  # need_pkg bbb-html5
 
   if [ -f /usr/share/bbb-web/WEB-INF/classes/bigbluebutton.properties ]; then
     SERVLET_DIR=/usr/share/bbb-web
